@@ -1,0 +1,73 @@
+---
+asIndexPage: true
+title: Channel Setup
+---
+
+# Channel Setup
+
+Complete setup guides for all supported notification channels. Each channel has its own strengths—choose what works best for your team.
+
+## Available Channels
+
+### Email
+Perfect for formal notifications and audit trails. Works with any SMTP provider including Gmail, SendGrid, and Amazon SES.
+
+- Universal - works everywhere
+- HTML templates with status colors
+- No third-party dependencies
+- Requires SMTP configuration
+
+[Email Setup Guide →](/docs/setup/email)
+
+---
+
+### Discord
+Great for development teams already using Discord. Rich embeds with beautiful formatting.
+
+- Easiest webhook setup
+- Rich embeds with colors and links
+- Real-time notifications
+- Requires a Discord server
+
+[Discord Setup Guide →](/docs/setup/discord)
+
+---
+
+### Telegram
+Ideal for personal notifications or small teams. Fast, lightweight, and mobile-friendly.
+
+- Quick bot creation
+- Works in personal chats or groups
+- Markdown formatting support
+- Requires creating a bot
+
+[Telegram Setup Guide →](/docs/setup/telegram)
+
+---
+
+### Slack
+Best for enterprise teams with existing Slack workspaces. Professional attachments with action buttons.
+
+- Native workspace integration
+- Threaded conversations
+- Status-colored attachments
+- Requires workspace admin for some features
+
+[Slack Setup Guide →](/docs/setup/slack)
+
+---
+
+## Multi-Channel Setup
+
+You can use multiple channels simultaneously for redundancy:
+```yaml filename=".github/workflows/ci.yml"
+- name: Notify all channels
+  if: always()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'email,discord,telegram,slack'
+    status: ${{ job.status }}
+    # Add credentials for each channel...
+```
+
+**Tip:** Start with one channel, then add more as needed. Each channel operates independently—if one fails, others still receive notifications.

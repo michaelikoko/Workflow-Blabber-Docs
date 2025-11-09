@@ -1,0 +1,250 @@
+---
+title: Telegram Setup
+---
+
+# Telegram Setup
+
+Send fast, mobile-friendly notifications to Telegram with markdown formatting. Perfect for personal use or small teams.
+
+## Preview
+
+<div className="my-6">
+  <img src="https://github.com/michaelikoko/workflow-blabber/raw/main/.github/images/telegram.png" alt="Telegram Notification Example" className="rounded-lg shadow-lg" />
+</div>
+
+Telegram notifications include:
+- Markdown-formatted messages
+- Status indicators
+- Direct links to workflow runs
+- Repository and branch information
+- Works in personal chats or group chats
+
+## Step-by-Step Setup
+
+### 1. Create a Telegram Bot
+
+1. Open Telegram and search for **@BotFather**
+2. Start a chat and send `/newbot`
+3. Follow the prompts:
+   - **Choose a name** for your bot (e.g., "Workflow Notifier")
+   - **Choose a username** (must end in "bot", e.g., "my_workflow_bot")
+4. BotFather will send you a **bot token** that looks like:
+```
+   123456789:ABCdefGHIjklMNOpqrsTUVwxyz
+```
+5. **Save this token** - you'll need it for GitHub
+
+### 2. Get Your Chat ID
+
+You need to find your chat ID so the bot knows where to send messages.
+
+#### Option A: Personal Chat (Simplest)
+
+1. Search for your bot's username in Telegram
+2. Click **Start** or send any message to your bot
+3. Open this URL in your browser (replace `YOUR_BOT_TOKEN`):
+```
+   https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates
+```
+4. Look for the `"chat"` object in the response:
+```json
+   "chat": {
+     "id": 123456789,
+     "first_name": "Your Name",
+     "type": "private"
+   }
+```
+5. The **id** value is your chat ID
+
+#### Option B: Group Chat
+
+1. Create a group in Telegram
+2. Add your bot to the group
+3. Send any message in the group
+4. Visit the same URL: `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates`
+5. Look for a negative chat ID (e.g., `-987654321`)
+6. That negative number is your group chat ID
+
+<div className="mt-4 p-4 border border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+  **Tip:** Group chat IDs are always negative numbers, while personal chat IDs are positive.
+</div>
+
+### 3. Add Secrets to GitHub
+
+Go to your repository → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+
+Add these two secrets:
+```
+Name: TELEGRAM_BOT_TOKEN
+Value: 123456789:ABCdefGHIjklMNOpqrsTUVwxyz
+
+Name: TELEGRAM_CHAT_ID
+Value: 123456789
+```
+
+<div className="mt-4 p-4 border border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+  ⚠️ **Security Warning**
+  
+  Never commit bot tokens to your repository. Always use GitHub Secrets to protect your credentials.
+</div>
+
+### 4. Use in Your Workflow
+```yaml filename=".github/workflows/ci.yml"
+name: CI Pipeline
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Notify Telegram
+        if: always()
+        uses: michaelikoko/workflow-blabber@v1
+        with:
+          channels: 'telegram'
+          status: ${{ job.status }}
+          telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+```
+
+## Usage Examples
+
+### Notify Only on Failure
+```yaml filename=".github/workflows/ci.yml"
+- name: Alert on failure
+  if: failure()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'telegram'
+    status: 'failure'
+    custom_message: 'Build failed! Check the logs immediately.'
+    telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+    telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+```
+
+### Custom Title and Message
+```yaml filename=".github/workflows/deploy.yml"
+- name: Deployment notification
+  if: always()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'telegram'
+    status: ${{ job.status }}
+    custom_title: 'Production Deployment'
+    custom_message: 'Version 2.0.0 has been deployed successfully!'
+    telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+    telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+```
+
+### Multiple Chats
+
+Send notifications to different chats based on conditions:
+```yaml filename=".github/workflows/ci.yml"
+- name: Notify personal chat
+  if: always()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'telegram'
+    status: ${{ job.status }}
+    telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+    telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID_PERSONAL }}
+
+- name: Notify team group on failure
+  if: failure()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'telegram'
+    status: 'failure'
+    custom_message: 'Critical: Production build failed'
+    telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+    telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID_TEAM }}
+```
+
+### Different Bots for Different Projects
+```yaml filename=".github/workflows/ci.yml"
+- name: Project-specific notification
+  if: always()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'telegram'
+    status: ${{ job.status }}
+    telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN_PROJECT_A }}
+    telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+```
+
+## Troubleshooting
+
+### Bot Not Sending Messages?
+
+**Check these common issues:**
+
+1. **Chat not started** - You must send at least one message to your bot before it can message you
+2. **Wrong chat ID** - Verify the chat ID is correct (positive for personal, negative for groups)
+3. **Bot not in group** - If using a group, ensure the bot is added as a member
+4. **Invalid token** - Double-check your bot token from BotFather
+5. **Bot blocked** - Make sure you haven't blocked the bot in Telegram
+
+### Getting Chat ID Returns Empty?
+
+If the `/getUpdates` endpoint returns an empty result:
+
+1. Make sure you've sent at least one message to the bot
+2. Try sending a new message, then check the endpoint again
+3. The bot must receive a message to appear in the updates
+
+### Testing Your Bot
+
+Test your bot token and chat ID using curl:
+```bash filename="terminal"
+curl -X POST \
+  "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/sendMessage" \
+  -d "chat_id=<YOUR_CHAT_ID>" \
+  -d "text=Test message from Workflow Blabber"
+```
+
+If you receive the message in Telegram, your credentials are correct.
+
+### Bot Admin Commands
+
+Useful BotFather commands:
+
+- `/mybots` - List all your bots
+- `/token` - Regenerate bot token if compromised
+- `/deletebot` - Delete a bot permanently
+- `/setdescription` - Set bot description
+- `/setabouttext` - Set about text
+- `/setuserpic` - Set bot profile picture
+
+## Group Chat Permissions
+
+If using a group chat, ensure your bot has these permissions:
+
+- **Send messages** - Required to post notifications
+- **Read messages** - Not required, but helps with debugging
+
+To check/modify permissions:
+1. Go to your group in Telegram
+2. Tap the group name
+3. Tap on your bot
+4. Adjust permissions as needed
+
+## Required Inputs
+
+| Input | Description | Required |
+|-------|-------------|----------|
+| `telegram_bot_token` | Bot token from @BotFather | Yes |
+| `telegram_chat_id` | Personal or group chat ID | Yes |
+
+## Chat ID Quick Reference
+
+| Type | ID Format | Example |
+|------|-----------|---------|
+| Personal Chat | Positive number | `123456789` |
+| Group Chat | Negative number | `-987654321` |
+| Channel | Very large negative number | `-1001234567890` |

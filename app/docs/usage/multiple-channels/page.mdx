@@ -1,0 +1,73 @@
+---
+title: Multiple Channels
+---
+
+# Multiple Channels
+
+Send to multiple platforms simultaneously. Channels operate independently.
+```yaml filename=".github/workflows/ci.yml"
+- name: Notify all channels
+  if: always()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'email,discord,slack,telegram'
+    status: ${{ job.status }}
+    smtp_host: 'smtp.gmail.com'
+    smtp_port: '587'
+    smtp_user: ${{ secrets.SMTP_USER }}
+    smtp_password: ${{ secrets.SMTP_PASSWORD }}
+    recipient_email: ${{ secrets.RECIPIENT_EMAIL }}
+    discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
+    slack_webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+    telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+    telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+```
+
+## Status-Based Channels
+```yaml filename=".github/workflows/ci.yml"
+# Success: Light notification
+- name: Success
+  if: success()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'telegram'
+    status: 'success'
+    telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+    telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+# Failure: Alert everywhere
+- name: Failure
+  if: failure()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'email,discord,slack'
+    status: 'failure'
+    smtp_host: 'smtp.gmail.com'
+    smtp_port: '587'
+    smtp_user: ${{ secrets.SMTP_USER }}
+    smtp_password: ${{ secrets.SMTP_PASSWORD }}
+    recipient_email: ${{ secrets.RECIPIENT_EMAIL }}
+    discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
+    slack_webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+```
+
+## Branch-Specific
+```yaml filename=".github/workflows/ci.yml"
+# Main: Full team
+- name: Main branch
+  if: github.ref == 'refs/heads/main'
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'slack,email'
+    status: ${{ job.status }}
+    # ... credentials
+
+# Dev: Personal only
+- name: Dev branches
+  if: github.ref != 'refs/heads/main'
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'telegram'
+    status: ${{ job.status }}
+    # ... credentials
+```

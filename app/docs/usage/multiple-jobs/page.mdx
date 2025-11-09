@@ -1,0 +1,141 @@
+---
+title: Multiple Jobs
+---
+
+# Multiple Jobs
+
+Coordinate notifications across multiple jobs in your workflow. Send a single consolidated notification after all jobs complete, or notify at each stage.
+
+## Notify Based on Specific Job Status
+Check the result of a specific job:
+```yaml filename=".github/workflows/ci.yml" {32}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build
+        run: npm run build
+  
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Test
+        run: npm test
+  
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    if: success()
+    steps:
+      - name: Deploy
+        run: ./deploy.sh
+  
+  notify:
+    runs-on: ubuntu-latest
+    needs: [build, test, deploy]
+    if: always()
+    steps:
+      - name: Notify based on deployment
+        uses: michaelikoko/workflow-blabber@v1
+        with:
+          channels: 'slack'
+          status: ${{ needs.deploy.result }}  # Use deploy job status
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+```
+
+## Notify Only on Any Failure
+```yaml filename=".github/workflows/ci.yml" {18}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build
+        run: npm run build
+  
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Test
+        run: npm test
+  
+  notify-failure:
+    runs-on: ubuntu-latest
+    needs: [build, test]
+    if: failure()  # Only runs if any job failed
+    steps:
+      - name: Alert on failure
+        uses: michaelikoko/workflow-blabber@v1
+        with:
+          channels: 'email,telegram'
+          status: 'failure'
+          custom_message: 'Pipeline failed - check workflow logs'
+          smtp_host: 'smtp.gmail.com'
+          smtp_port: '587'
+          smtp_user: ${{ secrets.SMTP_USER }}
+          smtp_password: ${{ secrets.SMTP_PASSWORD }}
+          recipient_email: ${{ secrets.RECIPIENT_EMAIL }}
+          telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+```
+
+## Parallel Jobs with Consolidated Notification
+Multiple independent jobs with one final notification:
+```yaml filename=".github/workflows/ci.yml"
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lint
+        run: npm run lint
+  
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Unit tests
+        run: npm run test:unit
+  
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Integration tests
+        run: npm run test:integration
+  
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Security scan
+        run: npm audit
+  
+  notify:
+    runs-on: ubuntu-latest
+    needs: [lint, unit-tests, integration-tests, security-scan]
+    if: always()
+    steps:
+      - name: Pipeline complete
+        uses: michaelikoko/workflow-blabber@v1
+        with:
+          channels: 'slack'
+          status: ${{ job.status }}
+          custom_title: 'CI Pipeline Complete'
+          custom_message: 'All checks completed'
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+```
+
+## Job Status Reference
+Access job results using the `needs` context:
+```yaml
+# Single job status
+status: ${{ needs.build.result }}
+
+# Current job status
+status: ${{ job.status }}
+```
+
+Possible values:
+- `success` - Job completed successfully
+- `failure` - Job failed
+- `cancelled` - Job was cancelled
+- `skipped` - Job was skipped
+

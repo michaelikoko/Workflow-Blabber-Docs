@@ -1,0 +1,117 @@
+---
+title: Configuration Reference
+---
+
+# Configuration Reference
+
+Complete list of all inputs for Workflow Blabber.
+
+## Required Inputs
+
+| Input | Description | Example |
+|-------|-------------|---------|
+| `channels` | Comma-separated list of channels | `'email,discord,slack,telegram'` |
+| `status` | Workflow status | `${{ job.status }}` or `'success'`, `'failure'`, `'cancelled'` |
+
+## General Inputs
+
+| Input | Description | Default | Required |
+|-------|-------------|---------|----------|
+| `custom_title` | Custom notification title | Auto-generated | No |
+| `custom_message` | Custom notification message | Auto-generated | No |
+| `fail_on_error` | Fail action if notification fails | `'false'` | No |
+
+## Email Inputs
+
+| Input | Description | Required |
+|-------|-------------|----------|
+| `smtp_host` | SMTP server hostname | Yes |
+| `smtp_port` | SMTP server port | Yes |
+| `smtp_user` | SMTP username | Yes |
+| `smtp_password` | SMTP password | Yes |
+| `recipient_email` | Recipient email address | Yes |
+| `smtp_secure` | Use TLS/SSL (`'true'` or `'false'`) | No (default: `'false'`) |
+| `email_subject` | Email subject line | No |
+
+### Common SMTP Ports
+
+| Port | Protocol | Usage |
+|------|----------|-------|
+| `587` | STARTTLS | Recommended |
+| `465` | SSL/TLS | Secure from start |
+| `25` | Unencrypted | Not recommended |
+
+## Discord Inputs
+
+| Input | Description | Required |
+|-------|-------------|----------|
+| `discord_webhook_url` | Discord webhook URL | Yes |
+
+## Slack Inputs
+
+| Input | Description | Required |
+|-------|-------------|----------|
+| `slack_webhook_url` | Slack webhook URL | Yes |
+
+## Telegram Inputs
+
+| Input | Description | Required |
+|-------|-------------|----------|
+| `telegram_bot_token` | Bot token from @BotFather | Yes |
+| `telegram_chat_id` | Chat or group ID | Yes |
+
+## Complete Example
+```yaml filename=".github/workflows/ci.yml"
+- name: Notify
+  if: always()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    # Required
+    channels: 'email,discord,slack,telegram'
+    status: ${{ job.status }}
+    
+    # General (optional)
+    custom_title: 'Production Build'
+    custom_message: 'Build completed successfully'
+    fail_on_error: 'false'
+    
+    # Email
+    smtp_host: 'smtp.gmail.com'
+    smtp_port: '587'
+    smtp_user: ${{ secrets.SMTP_USER }}
+    smtp_password: ${{ secrets.SMTP_PASSWORD }}
+    recipient_email: ${{ secrets.RECIPIENT_EMAIL }}
+    smtp_secure: 'false'
+    email_subject: 'CI Build Status'
+    
+    # Discord
+    discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
+    
+    # Slack
+    slack_webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+    
+    # Telegram
+    telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+    telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+```
+
+## Status Values
+
+| Value | Description |
+|-------|-------------|
+| `success` | Workflow completed successfully |
+| `failure` | Workflow failed |
+| `cancelled` | Workflow was cancelled |
+
+## Channel Values
+
+Specify one or more channels separated by commas:
+```yaml
+# Single channel
+channels: 'discord'
+
+# Multiple channels
+channels: 'email,discord,slack,telegram'
+```
+
+Available channels: `email`, `discord`, `slack`, `telegram`

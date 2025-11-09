@@ -1,0 +1,158 @@
+---
+title: Discord Setup
+---
+
+# Discord Setup
+
+Send beautiful, rich-formatted notifications to your Discord server with webhook integration.
+
+## Preview
+
+<div className="my-6">
+  <img src="https://github.com/michaelikoko/workflow-blabber/raw/main/.github/images/discord.png" alt="Discord Notification Example" className="rounded-lg shadow-lg" />
+</div>
+
+Discord notifications include:
+- Status-based color coding (green for success, red for failure)
+- Clickable links to workflow runs
+- Repository and branch information
+- Timestamp and workflow details
+
+## Step-by-Step Setup
+
+### 1. Create a Webhook
+
+1. Open **Discord** and navigate to the channel where you want notifications
+2. Click the **gear icon** (⚙️) next to the channel name
+3. Select **Integrations** from the left sidebar
+4. Click **Webhooks** → **New Webhook**
+
+### 2. Configure the Webhook
+
+1. **Name your webhook** (e.g., "GitHub Notifications" or "CI/CD Bot")
+2. **Choose an avatar** (optional - you can use your project logo)
+3. **Copy the Webhook URL** - it looks like:
+```
+   https://discord.com/api/webhooks/123456789012345678/abcdefghijklmnopqrstuvwxyz...
+```
+
+### 3. Add to GitHub Secrets
+
+1. Go to your repository on GitHub
+2. Navigate to **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret**
+4. Add your webhook:
+```
+Name: DISCORD_WEBHOOK
+Value: https://discord.com/api/webhooks/123456789012345678/abcdefgh...
+```
+
+<div className="mt-4 p-4 border border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+  **⚠️ Security Warning**
+  
+  Never commit webhook URLs directly to your code or repository. Always use GitHub Secrets to keep them secure.
+</div>
+
+### 4. Use in Your Workflow
+
+Add this step to your GitHub Actions workflow:
+```yaml filename=".github/workflows/ci.yml"
+name: CI Pipeline
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Notify Discord
+        if: always()
+        uses: michaelikoko/workflow-blabber@v1
+        with:
+          channels: 'discord'
+          status: ${{ job.status }}
+          discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
+```
+
+## Usage Examples
+
+### Notify Only on Failure
+```yaml filename=".github/workflows/ci.yml"
+- name: Alert Discord on failure
+  if: failure()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'discord'
+    status: 'failure'
+    custom_message: 'Build failed! Check the logs immediately.'
+    discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
+```
+
+### Custom Title and Message
+```yaml filename=".github/workflows/deploy.yml"
+- name: Deployment notification
+  if: always()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'discord'
+    status: ${{ job.status }}
+    custom_title: 'Production Deployment'
+    custom_message: 'Version 2.0.0 has been deployed to production!'
+    discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
+```
+
+### Multiple Discord Channels
+
+You can send to multiple Discord channels by creating multiple webhooks:
+```yaml filename=".github/workflows/ci.yml"
+- name: Notify dev channel
+  if: always()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'discord'
+    status: ${{ job.status }}
+    discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK_DEV }}
+
+- name: Notify production channel
+  if: success()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'discord'
+    status: ${{ job.status }}
+    custom_title: 'Ready for Production'
+    discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK_PROD }}
+```
+
+## Troubleshooting
+
+### Webhook Not Working?
+
+**Check these common issues:**
+
+1. **Invalid webhook URL** - Make sure you copied the entire URL including the token
+2. **Deleted webhook** - Verify the webhook still exists in Discord's Integrations settings
+3. **Channel permissions** - Ensure the webhook has permission to post in the channel
+4. **Rate limiting** - Discord limits webhooks to 30 requests per minute
+
+### Testing Your Webhook
+
+You can test your webhook using curl:
+```bash filename="terminal"
+curl -H "Content-Type: application/json" \
+  -d '{"content": "Test message from Workflow Blabber!"}' \
+  YOUR_WEBHOOK_URL
+```
+
+If this works, your webhook is configured correctly.
+
+## Required Input
+
+| Input | Description | Required |
+|-------|-------------|----------|
+| `discord_webhook_url` | Discord webhook URL | Yes |
+

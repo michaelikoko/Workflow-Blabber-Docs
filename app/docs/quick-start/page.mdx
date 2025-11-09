@@ -1,0 +1,115 @@
+---
+title: Quick Start
+---
+
+# Quick Start
+
+Get Workflow Blabber up and running in under 2 minutes.
+
+## Basic Setup
+
+### 1. Choose Your Channel
+
+Pick at least one notification channel to get started. We'll use Telegram as an example since it's the easiest to set up.
+
+### 2. Get Your Credentials
+
+For Telegram, you need two things:
+- **Bot Token** - Get it from [@BotFather](https://t.me/botfather) on Telegram
+- **Chat ID** - Your personal or group chat ID
+
+<details>
+<summary>Quick way to get your Chat ID</summary>
+
+1. Message your bot on Telegram
+2. Visit: `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates`
+3. Look for `"chat":{"id":123456789}`
+
+</details>
+
+### 3. Add Secrets to GitHub
+
+Go to your repository → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+
+Add these secrets:
+```
+TELEGRAM_BOT_TOKEN = your_bot_token_here
+TELEGRAM_CHAT_ID = your_chat_id_here
+```
+
+### 4. Add to Your Workflow
+```yaml filename=".github/workflows/ci.yml"
+name: CI Pipeline
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Your build steps here
+      - name: Build
+        run: npm run build
+      
+      # Add notification step at the end
+      - name: Notify
+        if: always()  # Runs even if previous steps fail
+        uses: michaelikoko/workflow-blabber@v1
+        with:
+          channels: 'telegram'
+          status: ${{ job.status }}
+          telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+```
+
+### 5. Push and Test
+
+Commit your workflow file and push to GitHub. You should receive a notification when the workflow completes!
+
+## Using Multiple Channels
+
+Want notifications on multiple platforms? Just add more channels:
+```yaml filename=".github/workflows/ci.yml"
+- name: Notify everywhere
+  if: always()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'telegram,discord,slack'
+    status: ${{ job.status }}
+    # Telegram
+    telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+    telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+    # Discord
+    discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
+    # Slack
+    slack_webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+```
+
+## Common Options
+
+### Notify Only on Failure
+```yaml filename=".github/workflows/ci.yml"
+- name: Alert on failure
+  if: failure()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'telegram'
+    status: 'failure'
+    telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+    telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+```
+
+### Custom Messages
+```yaml filename=".github/workflows/deploy.yml"
+- name: Deployment notification
+  if: always()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'discord'
+    status: ${{ job.status }}
+    custom_title: '🚀 Production Deployment'
+    custom_message: 'New version deployed to production!'
+    discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
+```

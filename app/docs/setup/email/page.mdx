@@ -1,0 +1,227 @@
+---
+title: Email Setup
+---
+
+# Email Setup
+
+Send professional HTML-formatted email notifications using any SMTP provider. Perfect for formal notifications and audit trails.
+
+## Preview
+
+<div className="my-6">
+  <img src="https://github.com/michaelikoko/workflow-blabber/raw/main/.github/images/mail.png" alt="Email Notification Example" className="rounded-lg shadow-lg h-80 w-80" />
+</div>
+
+Email notifications include:
+- Status-based color styling
+- HTML-formatted templates
+- Direct links to workflow runs
+- Repository and workflow metadata
+- Professional formatting for any email client
+
+## Supported Providers
+
+Workflow Blabber works with any SMTP server. Popular providers include:
+
+- **Gmail** - Free, reliable, 2FA app passwords required
+- **SendGrid** - Generous free tier, great for high volume
+- **Amazon SES** - Pay-as-you-go, enterprise-grade
+- **Mailgun** - Developer-friendly API
+- **Custom SMTP** - Any SMTP server (Office 365, self-hosted, etc.)
+
+## Gmail Setup
+
+Gmail is the easiest option for getting started. Here's how to set it up:
+
+### 1. Enable 2-Factor Authentication
+
+1. Go to your [Google Account Security](https://myaccount.google.com/security)
+2. Under "Signing in to Google", select **2-Step Verification**
+3. Follow the prompts to enable 2FA if not already enabled
+
+### 2. Generate an App Password
+
+1. Go to [Google Account Security](https://myaccount.google.com/security)
+2. Select **2-Step Verification**
+3. Scroll down to **App passwords** (at the bottom)
+4. Click **App passwords**
+5. Select **Mail** for the app
+6. Select **Other** for the device and name it (e.g., "GitHub Actions")
+7. Click **Generate**
+8. **Copy the 16-character password** - you won't see it again
+
+### 3. Add Secrets to GitHub
+
+Go to your repository → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+
+Add these secrets:
+```
+Name: SMTP_USER
+Value: your.email@gmail.com
+
+Name: SMTP_PASSWORD
+Value: [your-16-character-app-password]
+
+Name: RECIPIENT_EMAIL
+Value: recipient@example.com
+```
+
+<div className="mt-4 p-4 border border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+  ⚠️ **Security Warning**
+  
+  Never commit email credentials to your repository. Always use GitHub Secrets to protect passwords and tokens.
+</div>
+
+### 4. Use in Your Workflow
+```yaml filename=".github/workflows/ci.yml"
+name: CI Pipeline
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Email Notification
+        if: always()
+        uses: michaelikoko/workflow-blabber@v1
+        with:
+          channels: 'email'
+          status: ${{ job.status }}
+          smtp_host: 'smtp.gmail.com'
+          smtp_port: '587'
+          smtp_user: ${{ secrets.SMTP_USER }}
+          smtp_password: ${{ secrets.SMTP_PASSWORD }}
+          recipient_email: ${{ secrets.RECIPIENT_EMAIL }}
+          smtp_secure: 'false'
+```
+
+## Usage Examples
+
+### Custom Email Subject
+```yaml filename=".github/workflows/ci.yml"
+- name: Custom subject line
+  if: always()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'email'
+    status: ${{ job.status }}
+    email_subject: '[CI] Production Build Status'
+    smtp_host: 'smtp.gmail.com'
+    smtp_port: '587'
+    smtp_user: ${{ secrets.SMTP_USER }}
+    smtp_password: ${{ secrets.SMTP_PASSWORD }}
+    recipient_email: ${{ secrets.RECIPIENT_EMAIL }}
+```
+
+### Multiple Recipients
+
+For multiple recipients, configure your SMTP provider to handle distribution lists, or run the action multiple times:
+```yaml filename=".github/workflows/ci.yml"
+- name: Notify team lead
+  if: always()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'email'
+    status: ${{ job.status }}
+    smtp_host: 'smtp.gmail.com'
+    smtp_port: '587'
+    smtp_user: ${{ secrets.SMTP_USER }}
+    smtp_password: ${{ secrets.SMTP_PASSWORD }}
+    recipient_email: 'team-lead@example.com'
+
+- name: Notify dev team
+  if: failure()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'email'
+    status: 'failure'
+    custom_message: 'Build failed - requires immediate attention'
+    smtp_host: 'smtp.gmail.com'
+    smtp_port: '587'
+    smtp_user: ${{ secrets.SMTP_USER }}
+    smtp_password: ${{ secrets.SMTP_PASSWORD }}
+    recipient_email: 'dev-team@example.com'
+```
+
+### Secure SMTP (SSL/TLS)
+
+For providers that require SSL/TLS on port 465:
+```yaml filename=".github/workflows/ci.yml"
+- name: Email with SSL
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'email'
+    status: ${{ job.status }}
+    smtp_host: 'smtp.example.com'
+    smtp_port: '465'
+    smtp_user: ${{ secrets.SMTP_USER }}
+    smtp_password: ${{ secrets.SMTP_PASSWORD }}
+    recipient_email: ${{ secrets.RECIPIENT_EMAIL }}
+    smtp_secure: 'true'
+```
+
+## Troubleshooting
+
+### Authentication Failures
+
+**Gmail:**
+- Ensure 2FA is enabled on your Google account
+- Use an App Password, not your regular password
+- Check that "Less secure app access" is NOT enabled (use App Passwords instead)
+
+**Other Providers:**
+- Verify your SMTP credentials are correct
+- Check if your provider requires API keys instead of passwords
+- Ensure your IP isn't blocked by the provider
+
+### Connection Issues
+
+**Check these settings:**
+
+1. **SMTP Host** - Verify the correct hostname for your provider
+2. **SMTP Port** - Common ports:
+   - `587` - STARTTLS (most common, use `smtp_secure: 'false'`)
+   - `465` - SSL/TLS (use `smtp_secure: 'true'`)
+   - `25` - Unencrypted (not recommended)
+3. **Firewall** - Ensure GitHub Actions can connect to your SMTP server
+
+### Testing SMTP Connection
+
+Test your SMTP settings locally before adding to GitHub:
+```bash filename="terminal"
+# Using swaks (SMTP test tool)
+swaks --to recipient@example.com \
+  --from your.email@gmail.com \
+  --server smtp.gmail.com:587 \
+  --auth LOGIN \
+  --auth-user your.email@gmail.com \
+  --auth-password your-app-password \
+  --tls
+```
+
+## Required Inputs
+
+| Input | Description | Required | Default |
+|-------|-------------|----------|---------|
+| `smtp_host` | SMTP server hostname | Yes | - |
+| `smtp_port` | SMTP server port | Yes | - |
+| `smtp_user` | SMTP username/email | Yes | - |
+| `smtp_password` | SMTP password/API key | Yes | - |
+| `recipient_email` | Recipient email address | Yes | - |
+| `smtp_secure` | Use SSL/TLS | No | `'false'` |
+| `email_subject` | Custom email subject | No | Auto-generated |
+
+## Common SMTP Ports
+
+| Port | Protocol | Usage |
+|------|----------|-------|
+| `587` | STARTTLS | Recommended for most providers |
+| `465` | SSL/TLS | Secure connection from start |
+| `25` | Unencrypted | Not recommended, often blocked |
+| `2525` | Alternative | Some providers use this as alternative to 587 |

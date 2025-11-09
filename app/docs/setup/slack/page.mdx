@@ -1,0 +1,198 @@
+---
+title: Slack Setup
+---
+
+# Slack Setup
+
+Send professional notifications to your Slack workspace with status-colored attachments and action buttons.
+
+## Preview
+
+<div className="my-6">
+  <img src="https://github.com/michaelikoko/workflow-blabber/raw/main/.github/images/slack.png" alt="Slack Notification Example" className="rounded-lg shadow-lg" />
+</div>
+
+Slack notifications include:
+- Status-based color coding
+- Direct links to workflow runs
+- Repository and branch details
+- Formatted attachments with metadata
+
+## Step-by-Step Setup
+
+### 1. Create a Slack App
+
+1. Go to [api.slack.com/apps](https://api.slack.com/apps)
+2. Click **Create New App**
+3. Select **From scratch**
+4. **Name your app** (e.g., "Workflow Blabber" or "GitHub Notifications")
+5. **Select your workspace** from the dropdown
+6. Click **Create App**
+
+### 2. Enable Incoming Webhooks
+
+1. In your app settings, find **Incoming Webhooks** in the left sidebar
+2. Toggle **Activate Incoming Webhooks** to **On**
+3. Scroll down and click **Add New Webhook to Workspace**
+4. **Select the channel** where notifications should appear
+5. Click **Allow**
+
+### 3. Copy the Webhook URL
+
+After authorizing, you'll see your webhook URL. It looks like:
+```
+https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXX
+```
+
+Copy this URL - you'll need it for GitHub.
+
+### 4. Add to GitHub Secrets
+
+1. Go to your repository on GitHub
+2. Navigate to **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret**
+4. Add your webhook:
+```
+Name: SLACK_WEBHOOK
+Value: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXX
+```
+
+<div className="mt-4 p-4 border border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+  **⚠️ Security Note**
+  
+  Never commit webhook URLs to your repository. Always use GitHub Secrets to protect sensitive credentials.
+</div>
+
+### 5. Use in Your Workflow
+
+Add this step to your GitHub Actions workflow:
+```yaml filename=".github/workflows/ci.yml"
+name: CI Pipeline
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Notify Slack
+        if: always()
+        uses: michaelikoko/workflow-blabber@v1
+        with:
+          channels: 'slack'
+          status: ${{ job.status }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+```
+
+## Usage Examples
+
+### Notify Only on Failure
+```yaml filename=".github/workflows/ci.yml"
+- name: Alert Slack on failure
+  if: failure()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'slack'
+    status: 'failure'
+    custom_message: 'Build failed! Immediate attention required.'
+    slack_webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+```
+
+### Custom Title and Message
+```yaml filename=".github/workflows/deploy.yml"
+- name: Deployment notification
+  if: always()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'slack'
+    status: ${{ job.status }}
+    custom_title: 'Production Deployment'
+    custom_message: 'Version 2.0.0 deployed successfully to production environment.'
+    slack_webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+```
+
+### Different Channels for Different Statuses
+```yaml filename=".github/workflows/ci.yml"
+- name: Success notification
+  if: success()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'slack'
+    status: 'success'
+    slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_SUCCESS }}
+
+- name: Failure notification
+  if: failure()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'slack'
+    status: 'failure'
+    custom_message: 'Critical: Build pipeline failed'
+    slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_ALERTS }}
+```
+
+### Notify Multiple Workspaces
+
+If you're working across multiple Slack workspaces:
+```yaml filename=".github/workflows/ci.yml"
+- name: Notify Team A workspace
+  if: always()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'slack'
+    status: ${{ job.status }}
+    slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_TEAM_A }}
+
+- name: Notify Team B workspace
+  if: always()
+  uses: michaelikoko/workflow-blabber@v1
+  with:
+    channels: 'slack'
+    status: ${{ job.status }}
+    slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_TEAM_B }}
+```
+
+## Troubleshooting
+
+### Webhook Not Working?
+
+**Check these common issues:**
+
+1. **Invalid webhook URL** - Ensure you copied the complete URL including the token
+2. **Webhook deleted** - Verify the webhook still exists in your Slack app settings
+3. **Channel archived** - Make sure the target channel is active
+4. **App removed** - Check if the app is still installed in your workspace
+5. **Rate limiting** - Slack limits incoming webhooks to 1 message per second
+
+### Testing Your Webhook
+
+Test your webhook with curl:
+```bash filename="terminal"
+curl -X POST -H 'Content-type: application/json' \
+  --data '{"text":"Test message from Workflow Blabber"}' \
+  YOUR_WEBHOOK_URL
+```
+
+If you see "ok" in the response and a message appears in Slack, your webhook is configured correctly.
+
+### Permission Issues
+
+If notifications aren't appearing:
+
+1. Go to your Slack workspace
+2. Open the channel where notifications should appear
+3. Click the channel name at the top
+4. Select **Integrations** tab
+5. Verify your app is listed under **Apps**
+
+## Required Input
+
+| Input | Description | Required |
+|-------|-------------|----------|
+| `slack_webhook_url` | Slack incoming webhook URL | Yes |
+

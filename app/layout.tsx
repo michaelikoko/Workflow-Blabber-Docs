@@ -20,7 +20,7 @@ export default async function RootLayout({
     <html lang="en" data-theme={theme} suppressHydrationWarning dir="ltr"
     >
       <body className={theme}>
-        <div className="min-h-lvh">{children}</div>
+        <div className={`min-h-lvh ${theme}`}>{children}</div>
       </body>
     </html>
   )

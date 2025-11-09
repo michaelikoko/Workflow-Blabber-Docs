@@ -34,7 +34,7 @@ export default async function RootLayout({
         search={false}
         editLink={null}
       >
-        <div className="bg-base-300 ">{children}</div>
+        <div className={`bg-base-300 ${theme}`}>{children}</div>
       </Layout>
     </div>
   )

@@ -17,7 +17,7 @@ export default async function RootLayout({
   const theme: Theme = await getTheme()
   //console.log(theme)
   return (
-    <html lang="en" data-theme={theme} suppressHydrationWarning dir="ltr"
+    <html lang="en" className={theme} data-theme={theme} suppressHydrationWarning dir="ltr"
     >
       <body className={theme}>
         <div className={`min-h-lvh ${theme}`}>{children}</div>

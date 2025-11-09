@@ -1,6 +1,7 @@
 @import 'tailwindcss';
-@plugin "daisyui";
- 
+@plugin "daisyui" {
+  exclude: properties;
+} 
 /* Customise DaisyUI Light and Dark Schemes*/
 @plugin "daisyui/theme" {
   name: 'light';
